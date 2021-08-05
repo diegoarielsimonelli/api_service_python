@@ -18,6 +18,13 @@ Ingresar a la siguiente URL para ver los endpoints disponibles
 http://127.0.0.1:5000/
 '''
 
+from config import config
+import heart
+from heart import db
+import matplotlib.image as mpimg
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+import matplotlib.pyplot as plt
 __author__ = "Inove Coding School"
 __email__ = "INFO@INOVE.COM.AR"
 __version__ = "1.2"
@@ -34,17 +41,10 @@ from datetime import datetime, timedelta
 
 from flask import Flask, request, jsonify, render_template, Response, redirect
 import matplotlib
-matplotlib.use('Agg')   # Para multi-thread, non-interactive backend (avoid run in main loop)
-import matplotlib.pyplot as plt
+# Para multi-thread, non-interactive backend (avoid run in main loop)
+matplotlib.use('Agg')
 # Para convertir matplotlib a imagen y luego a datos binarios
-from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
-from matplotlib.figure import Figure
-import matplotlib.image as mpimg
 
-from heart import db
-import heart
-
-from config import config
 
 # Crear el server Flask
 app = Flask(__name__)
@@ -79,6 +79,8 @@ def index():
         return jsonify({'trace': traceback.format_exc()})
 
 # Ruta que se ingresa por la ULR 127.0.0.1:5000/reset
+
+
 @app.route("/reset")
 def reset():
     try:
@@ -90,6 +92,8 @@ def reset():
         return jsonify({'trace': traceback.format_exc()})
 
 # Ruta que se ingresa por la ULR 127.0.0.1:5000/pulsaciones
+
+
 @app.route("/pulsaciones")
 def pulsaciones():
     try:
@@ -131,12 +135,15 @@ def pulsaciones_historico(name):
         # y mostrar en el HTML
         output = io.BytesIO()
         FigureCanvas(fig).print_png(output)
-        plt.close(fig)  # Cerramos la imagen para que no consuma memoria del sistema
+        # Cerramos la imagen para que no consuma memoria del sistema
+        plt.close(fig)
         return Response(output.getvalue(), mimetype='image/png')
     except:
         return jsonify({'trace': traceback.format_exc()})
 
 # Ruta que se ingresa por la ULR 127.0.0.1:5000/registro
+
+
 @app.route("/registro", methods=['POST'])
 def registro():
     if request.method == 'POST':
@@ -146,7 +153,7 @@ def registro():
 
         if(nombre is None or pulsos is None or pulsos.isdigit() is False):
             # Datos ingresados incorrectos
-                return Response(status=400)
+            return Response(status=400)
         time = datetime.now()
         heart.insert(time, nombre, int(pulsos))
         return Response(status=200)

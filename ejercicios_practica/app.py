@@ -18,6 +18,13 @@ Ingresar a la siguiente URL para ver los endpoints disponibles
 http://127.0.0.1:5000/
 '''
 
+from config import config
+import persona
+from persona import db
+import matplotlib.image as mpimg
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+import matplotlib.pyplot as plt
 __author__ = "Inove Coding School"
 __email__ = "INFO@INOVE.COM.AR"
 __version__ = "1.2"
@@ -35,16 +42,9 @@ from datetime import datetime, timedelta
 import numpy as np
 from flask import Flask, request, jsonify, render_template, Response, redirect
 import matplotlib
-matplotlib.use('Agg')   # For multi thread, non-interactive backend (avoid run in main loop)
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
-from matplotlib.figure import Figure
-import matplotlib.image as mpimg
+# For multi thread, non-interactive backend (avoid run in main loop)
+matplotlib.use('Agg')
 
-from persona import db
-import persona
-
-from config import config
 
 app = Flask(__name__)
 
@@ -72,7 +72,7 @@ def index():
         result += "<h3>[GET] /personas?limit=[]&offset=[] --> mostrar el listado de personas (limite and offset are optional)</h3>"
         result += "<h3>[POST] /registro --> ingresar nuevo registro de pulsaciones por JSON</h3>"
         result += "<h3>[GET] /comparativa --> mostrar un gráfico que compare cuantas personas hay de cada nacionalidad"
-        
+
         return(result)
     except:
         return jsonify({'trace': traceback.format_exc()})
@@ -95,8 +95,8 @@ def personas():
         # Alumno:
         # Implementar la captura de limit y offset de los argumentos
         # de la URL
-        # limit = ...
-        # offset = ....
+        limit_str = str(request.args.get('limit'))
+        offset_str = str(request.args.get('offset'))
 
         # Debe verificar si el limit y offset son válidos cuando
         # no son especificados en la URL
@@ -104,6 +104,11 @@ def personas():
         limit = 0
         offset = 0
 
+        if(limit_str is not None) and (limit_str.isdigit()):
+            limit = int(limit_str)
+
+        if(offset_str is not None) and (offset_str.isdigit()):
+            offset = int(offset_str)
         result = persona.report(limit=limit, offset=offset)
         return jsonify(result)
     except:
@@ -126,6 +131,28 @@ def comparativa():
         return jsonify({'trace': traceback.format_exc()})
 
 
+@app.route("/comparativa_grafico")
+def nombre_nacionalidad(name):
+    try:
+        # Obtener el historial de la persona
+        name, nationality = persona(name)
+
+        # Crear el grafico que se desea mostrar
+        fig, ax = plt.subplots(figsize=(16, 9))
+        ax.plot(name, nationality)
+        ax.get_xaxis().set_visible(False)
+
+        # Convertir ese grafico en una imagen para enviar por HTTP
+        # y mostrar en el HTML
+        output = io.BytesIO()
+        FigureCanvas(fig).print_png(output)
+        # Cerramos la imagen para que no consuma memoria del sistema
+        plt.close(fig)
+        return Response(output.getvalue(), mimetype='image/png')
+    except:
+        return jsonify({'trace': traceback.format_exc()})
+
+
 @app.route("/registro", methods=['POST'])
 def registro():
     if request.method == 'POST':
@@ -135,12 +162,15 @@ def registro():
             # name = ...
             # age = ...
             # nationality = ...
+            name = str(request.form.get('name'))
+            age = str(request.form.get('age'))
+            nationality = str(request.form.get('nationality'))
 
-            # persona.insert(name, int(age), nationality)
+            persona.insert(name, int(age), nationality)
             return Response(status=200)
         except:
             return jsonify({'trace': traceback.format_exc()})
-    
+
 
 if __name__ == '__main__':
     print('Servidor arriba!')
